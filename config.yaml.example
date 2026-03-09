@@ -1,0 +1,17 @@
+# Event date range (inclusive, UTC)
+# Only matches within this period will be counted
+event_start: '2026-02-01'
+event_end: '2026-02-28'
+
+# Player nicknames to track (MCSR Ranked usernames)
+players:
+- MoDDyChat
+- Sanhez
+- Dushenka_
+
+# Optional: manually add casual (non-ranked) run times
+# Format: "MM:SS.mmm"
+# casual_runs:
+#   MoDDyChat:
+#     - "11:12.960"
+#     - "9:10.500"

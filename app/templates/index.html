@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCSR Event Leaderboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #2B333E;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: rgb(161, 161, 170);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .logo {
+            max-width: 400px;
+            width: 100%;
+            height: auto;
+            margin-bottom: 0.25rem;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .last-updated {
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            opacity: 0.7;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: rgba(255, 255, 255, 0.03);
+            min-width: 800px;
+        }
+
+        th, td {
+            padding: 0.7rem 0.6rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: rgba(255, 255, 255, 0.05);
+            font-weight: 600;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+
+        th[data-sort] {
+            cursor: pointer;
+        }
+
+        th[data-sort]:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+
+        th.sorted-asc::after {
+            content: ' \25B2';
+            font-size: 0.7em;
+        }
+
+        th.sorted-desc::after {
+            content: ' \25BC';
+            font-size: 0.7em;
+        }
+
+        .group-header th {
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.5rem 0.6rem;
+        }
+
+        .group-ranked {
+            color: #10b981;
+        }
+
+        .group-casual {
+            color: #60a5fa;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        td.nickname-cell, th.nickname-col {
+            text-align: center;
+        }
+
+        .nickname-cell a {
+            color: rgb(161, 161, 170);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .nickname-cell a:hover {
+            color: #fff;
+        }
+
+        .link-icon {
+            opacity: 0;
+            transition: opacity 0.2s;
+            width: 12px;
+            height: 12px;
+            flex-shrink: 0;
+        }
+
+        .nickname-cell a:hover .link-icon {
+            opacity: 0.7;
+        }
+
+        .elo {
+            font-weight: 600;
+            color: #10b981;
+        }
+
+        .time {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .wins { color: #10b981; }
+        .loses { color: #ef4444; }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            opacity: 0.7;
+        }
+
+        .na {
+            opacity: 0.5;
+            font-style: italic;
+        }
+
+        .rank {
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .casual {
+            opacity: 0.85;
+        }
+
+        .section-border {
+            border-left: 2px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .info {
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 0.875rem;
+            opacity: 0.6;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 0.75rem;
+            }
+
+            header {
+                margin-bottom: 1rem;
+            }
+
+            h1 {
+                font-size: 1.25rem;
+            }
+
+            .last-updated {
+                font-size: 0.75rem;
+            }
+
+            th, td {
+                padding: 0.5rem 0.3rem;
+                font-size: 0.75rem;
+                white-space: nowrap;
+            }
+
+            .group-header th {
+                font-size: 0.7rem;
+                padding: 0.4rem 0.3rem;
+            }
+
+            .info {
+                font-size: 0.75rem;
+                margin-top: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MCSR Event Leaderboard</h1>
+            <p class="last-updated" id="lastUpdated">Loading...</p>
+        </header>
+
+        <div class="table-wrapper">
+            <table id="leaderboard">
+                <thead>
+                    <tr class="group-header">
+                        <th colspan="2"></th>
+                        <th colspan="5" class="group-ranked section-border">Ranked</th>
+                        <th colspan="4" class="group-casual section-border">Casual</th>
+                    </tr>
+                    <tr>
+                        <th data-sort="rank">#</th>
+                        <th data-sort="nickname" class="nickname-col">Nickname</th>
+                        <th data-sort="elo" class="sorted-desc section-border">Elo</th>
+                        <th data-sort="average_time">Avg Time</th>
+                        <th data-sort="personal_best">Best Time</th>
+                        <th data-sort="wins">W</th>
+                        <th data-sort="loses">L</th>
+                        <th data-sort="casual_average_time" class="section-border">Avg Time</th>
+                        <th data-sort="casual_personal_best">Best Time</th>
+                        <th data-sort="casual_wins">W</th>
+                        <th data-sort="casual_loses">L</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="11" class="loading">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p class="info">New players will appear as they are added by event organizers.</p>
+    </div>
+
+    <script>
+        let players = [];
+        let currentSort = { field: 'elo', descending: true };
+        let lastUpdateTime = null;
+
+        const LINK_ICON_SVG = '<svg class="link-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5H3a1 1 0 0 0-1 1V13a1 1 0 0 0 1 1h8.5a1 1 0 0 0 1-1V9.5"/><path d="M9.5 2h4.5v4.5"/><path d="M14 2 7.5 8.5"/></svg>';
+
+        function formatRelativeTime(date) {
+            if (!date) return 'Never';
+            const now = new Date();
+            const diffMs = now - date;
+            const diffSec = Math.floor(diffMs / 1000);
+            const diffMin = Math.floor(diffSec / 60);
+            const diffHour = Math.floor(diffMin / 60);
+
+            if (diffSec < 5) return 'just now';
+            if (diffSec < 60) return `${diffSec}s ago`;
+            if (diffMin < 60) return `${diffMin}m ago`;
+            return `${diffHour}h ago`;
+        }
+
+        function updateLastUpdatedDisplay() {
+            const el = document.getElementById('lastUpdated');
+            if (lastUpdateTime) {
+                el.textContent = `Updated: ${formatRelativeTime(lastUpdateTime)}`;
+            }
+        }
+
+        function formatTime(ms) {
+            if (ms === null || ms === undefined) return '<span class="na">N/A</span>';
+            const minutes = Math.floor(ms / 60000);
+            const seconds = Math.floor((ms % 60000) / 1000);
+            const millis = Math.floor(ms % 1000);
+            return `${minutes}:${seconds.toString().padStart(2, '0')}.${millis.toString().padStart(3, '0')}`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+
+            if (players.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" class="loading">No data</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = players.map((p, index) => {
+                const nick = escapeHtml(p.nickname);
+                const profileUrl = `https://mcsrranked.com/stats/${encodeURIComponent(p.nickname)}`;
+                return `
+                <tr>
+                    <td class="rank">${index + 1}</td>
+                    <td class="nickname-cell"><a href="${profileUrl}" target="_blank" rel="noopener">${nick}${LINK_ICON_SVG}</a></td>
+                    <td class="elo section-border">${p.elo}</td>
+                    <td class="time">${formatTime(p.average_time)}</td>
+                    <td class="time">${formatTime(p.personal_best)}</td>
+                    <td class="wins">${p.wins}</td>
+                    <td class="loses">${p.loses}</td>
+                    <td class="time casual section-border">${formatTime(p.casual_average_time)}</td>
+                    <td class="time casual">${formatTime(p.casual_personal_best)}</td>
+                    <td class="wins casual">${p.casual_wins}</td>
+                    <td class="loses casual">${p.casual_loses}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function compareValues(a, b, desc, nullIsWorst = true) {
+            const aNull = a === null || a === undefined;
+            const bNull = b === null || b === undefined;
+            if (aNull && bNull) return 0;
+            if (aNull) return nullIsWorst ? 1 : -1;
+            if (bNull) return nullIsWorst ? -1 : 1;
+            if (typeof a === 'string') {
+                return desc ? b.localeCompare(a) : a.localeCompare(b);
+            }
+            return desc ? b - a : a - b;
+        }
+
+        function sortPlayers(field, descending) {
+            if (field === 'rank') {
+                field = 'elo';
+                descending = true;
+            }
+
+            players.sort((a, b) => {
+                let result = compareValues(a[field], b[field], descending);
+                if (result !== 0) return result;
+
+                const tiebreakers = {
+                    elo: [
+                        ['personal_best', false], ['average_time', false], ['wins', true],
+                        ['casual_personal_best', false], ['casual_average_time', false], ['_casual_total', true],
+                    ],
+                    average_time: [
+                        ['personal_best', false], ['wins', true],
+                        ['casual_average_time', false], ['casual_personal_best', false], ['_casual_total', true],
+                    ],
+                    personal_best: [
+                        ['average_time', false], ['wins', true],
+                        ['casual_personal_best', false], ['casual_average_time', false], ['_casual_total', true],
+                    ],
+                    wins: [
+                        ['personal_best', false], ['average_time', false],
+                        ['_casual_total', true], ['casual_personal_best', false],
+                    ],
+                    loses: [
+                        ['wins', true], ['personal_best', false],
+                        ['_casual_total', true], ['casual_personal_best', false],
+                    ],
+                    casual_average_time: [
+                        ['casual_personal_best', false], ['_casual_total', true],
+                    ],
+                    casual_personal_best: [
+                        ['casual_average_time', false], ['_casual_total', true],
+                    ],
+                    casual_wins: [
+                        ['casual_personal_best', false], ['casual_average_time', false], ['casual_loses', true],
+                    ],
+                    casual_loses: [
+                        ['casual_wins', true], ['casual_personal_best', false], ['casual_average_time', false],
+                    ],
+                };
+
+                const chain = tiebreakers[field];
+                if (chain) {
+                    for (const [f, desc] of chain) {
+                        if (f === '_casual_total') {
+                            result = compareValues(
+                                a.casual_wins + a.casual_loses,
+                                b.casual_wins + b.casual_loses,
+                                desc
+                            );
+                        } else {
+                            result = compareValues(a[f], b[f], desc);
+                        }
+                        if (result !== 0) return result;
+                    }
+                }
+                return result;
+            });
+        }
+
+        function updateSortIndicators(clickedTh) {
+            document.querySelectorAll('th').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+            });
+            clickedTh.classList.add(currentSort.descending ? 'sorted-desc' : 'sorted-asc');
+        }
+
+        // Setup column sorting
+        document.querySelectorAll('th[data-sort]').forEach(th => {
+            th.addEventListener('click', () => {
+                const field = th.dataset.sort;
+
+                if (currentSort.field === field) {
+                    currentSort.descending = !currentSort.descending;
+                } else {
+                    currentSort.field = field;
+                    currentSort.descending = field !== 'nickname';
+                }
+
+                sortPlayers(field, currentSort.descending);
+                updateSortIndicators(th);
+                renderTable();
+            });
+        });
+
+        // Fetch data
+        async function loadData() {
+            try {
+                const response = await fetch('/api/leaderboard');
+                const data = await response.json();
+
+                players = data.players;
+
+                if (data.last_updated && data.last_updated !== 'Never') {
+                    lastUpdateTime = new Date(data.last_updated);
+                }
+                updateLastUpdatedDisplay();
+
+                sortPlayers(currentSort.field, currentSort.descending);
+                renderTable();
+            } catch (error) {
+                console.error('Failed to load data:', error);
+                document.getElementById('tableBody').innerHTML =
+                    '<tr><td colspan="11" class="loading">Failed to load data</td></tr>';
+            }
+        }
+
+        loadData();
+        setInterval(loadData, 60000);
+        setInterval(updateLastUpdatedDisplay, 1000);
+    </script>
+</body>
+</html>
